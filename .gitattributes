@@ -1,0 +1,4 @@
+.claude export-ignore
+.github export-ignore
+.gitattributes export-ignore
+*.cmd text eol=crlf
