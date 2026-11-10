@@ -23,4 +23,4 @@ Hold the **right Command** key, speak and release. Press it twice in a row to di
 
 Differences from the Windows version: Caps Lock cannot be the dictation key (macOS does not report when it is held and released), and Esc cancels a dictation but also reaches the app in front.
 
-Looking for the Windows version? It is published as a separate release.
+The Windows and Linux versions are published as separate releases.
