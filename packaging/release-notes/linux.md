@@ -1,3 +1,7 @@
+## ⬇️ [Download Susurros-0.3.0-linux.tar.gz](https://github.com/KTJota/susurros/releases/download/v0.3.0-linux/Susurros-0.3.0-linux.tar.gz)
+
+Or skip the download and use the one-line installer below.
+
 Voice dictation for Ubuntu and Debian. Your voice is turned into text on your own computer.
 
 This first Linux version has been checked automatically on Ubuntu (tests, a real virtual keyboard read back through the kernel, and a start of the installed app), but not yet by a person at a real desktop. Please report what does not work.
@@ -14,7 +18,7 @@ It asks for your password once: to install a few system packages, and to add you
 
 If the computer has an NVIDIA card, the installer adds the GPU libraries; otherwise dictation runs on the CPU, which is slower. The speech model, about 1.6 GB, is downloaded the first time the app opens.
 
-Prefer to look before you run? Download the archive below, extract it and run `bash scripts/install-linux.sh` from its folder.
+Prefer to look before you run? Download the archive with the link above, extract it and run `bash scripts/install-linux.sh` from its folder.
 
 ## Use
 

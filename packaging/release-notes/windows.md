@@ -1,8 +1,10 @@
+## ⬇️ [Download Susurros-Setup-0.3.0.exe](https://github.com/KTJota/susurros/releases/download/v0.3.0-windows/Susurros-Setup-0.3.0.exe)
+
 Voice dictation for Windows 10 and 11. Your voice is turned into text on your own computer.
 
 ## Install
 
-1. Download **Susurros-Setup-0.3.0.exe** below and open it.
+1. Download **Susurros-Setup-0.3.0.exe** with the link above and open it.
 2. Windows will say it does not recognise the app, because it is not signed with a paid certificate. Click **More info**, then **Run anyway**.
 3. Follow the two steps of the installer. Susurros opens when it finishes.
 

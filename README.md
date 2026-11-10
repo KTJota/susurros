@@ -152,7 +152,7 @@ The Windows-specific code (keyboard hook, text injection, sounds, start with Win
 
 **Publishing a version.** Each version is three GitHub releases, one per system.
 
-1. Set the version in `pyproject.toml`, in the download links above and in `packaging/release-notes`, run `uv lock` and push.
+1. Set the version in `pyproject.toml`, in the download links above and in `packaging/release-notes` (each note starts with a direct download link, because GitHub only shows the files of the latest release unfolded), run `uv lock` and push.
 2. Run the **Build** workflow with releases on: `gh workflow run build.yml -f release=true`. It runs the tests on the three systems, builds the Windows setup program, the Mac disk image and the Linux archive, checks that each packaged app starts, and attaches everything to three draft releases.
 3. Look at the drafts, then publish them: `sh scripts/publish-release.sh VERSION`.
 
