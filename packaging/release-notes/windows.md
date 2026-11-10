@@ -1,18 +1,16 @@
-Voice dictation for Windows 10 and 11. Transcription runs on your own computer, on the GPU if it has an NVIDIA card with CUDA and on the CPU otherwise.
+Voice dictation for Windows 10 and 11. Your voice is turned into text on your own computer.
 
 ## Install
 
-1. Install [uv](https://docs.astral.sh/uv/): `winget install astral-sh.uv`
-2. Download the zip below and extract it.
-3. Double-click `scripts\install.cmd`, or run this from the extracted folder:
+Open PowerShell, paste this line and press Enter:
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\install.ps1
-   ```
+```powershell
+irm https://raw.githubusercontent.com/KTJota/susurros/main/scripts/get.ps1 | iex
+```
 
-It downloads what it needs into `%LOCALAPPDATA%\Susurros` and adds Susurros to the Start menu and the desktop. The speech model, about 1.6 GB, is downloaded the first time the app opens.
+It downloads what Susurros needs and adds it to the Start menu and the desktop. The first time takes a few minutes, because it includes the speech model. Run the same line again to update.
 
-If Windows refuses to run the downloaded script, right-click the zip before extracting it, choose Properties and tick Unblock.
+Prefer to do it by hand? Install [uv](https://docs.astral.sh/uv/) (`winget install astral-sh.uv`), extract the zip below and double-click `scripts\install.cmd`.
 
 ## Use
 

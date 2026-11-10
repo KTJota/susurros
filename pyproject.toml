@@ -3,6 +3,8 @@ name = "susurros"
 version = "0.2.0"
 description = "Local voice dictation for Windows and macOS: hold a key, speak, and the clean text appears wherever you are typing."
 requires-python = ">=3.12,<3.13"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "PySide6-Essentials>=6.7",
     "faster-whisper>=1.1",

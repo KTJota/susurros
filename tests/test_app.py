@@ -1,5 +1,8 @@
 """The controller end to end, with the transcriber, microphone and keyboard faked.
 The `controller` fixture runs the interface in Spanish, so UI text is asserted in Spanish."""
+import sys
+
+import pytest
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 
@@ -138,6 +141,7 @@ def test_history_write_failure_does_not_swallow_the_dictation(controller, monkey
     assert "historial" in controller.pill._caption.text
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="asserts the Windows key names; test_mac.py covers the macOS ones")
 def test_hotkey_capture_is_cancelled_when_the_window_goes_away(controller):
     controller.window.show()
     window = controller.window

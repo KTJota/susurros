@@ -77,6 +77,13 @@ def _shots(folder: str) -> int:
         ("Vale, perfecto.", 1.4, "slack", "rules"),
         ("Recuérdame que mañana tengo que llamar al gestor para lo de las facturas del trimestre.", 6.3, "chrome", "claude"),
     ]
+    if i18n.language() == "en":
+        samples = [
+            ("Let's meet on Wednesday at ten to go over the proposal before we send it to the client.", 7.2, "OUTLOOK", "claude"),
+            ("Add an index on the created_at column and run the migration again.", 5.1, "Code", "claude"),
+            ("Sounds good, thanks.", 1.4, "slack", "rules"),
+            ("Remind me to call the accountant tomorrow about this quarter's invoices.", 6.3, "chrome", "claude"),
+        ]
     for text, seconds, app_name, engine in reversed(samples):
         words = len(text.split())
         store.add_transcription(text, duration_s=seconds, app=app_name, engine=engine, mode="hold",
