@@ -11,6 +11,7 @@ from PySide6.QtGui import QGuiApplication
 log = logging.getLogger("susurros.injector")
 IS_WINDOWS = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
+IS_LINUX = sys.platform.startswith("linux")
 
 
 def foreground_app() -> str:
@@ -85,6 +86,9 @@ def type_text(text: str) -> None:
         from .mac import injector as mac_injector
         mac_injector.type_text(text)
         return
+    if IS_LINUX and text:
+        paste(text)   # typing arbitrary characters depends on the keyboard layout there: paste instead
+        return
     if not IS_WINDOWS or not text:
         return
     units = text.encode("utf-16-le")
@@ -153,6 +157,13 @@ def paste(text: str) -> None:
             _paster = _Paster(mac_injector.send_cmd_v)
         _paster.paste(text)
         return
+    if IS_LINUX:
+        from .linux import system as linux_system
+        if _paster is None and linux_system.prepare_keyboard():
+            _paster = _Paster(linux_system.send_ctrl_v)
+        if _paster is not None:
+            _paster.paste(text)
+            return
     if not IS_WINDOWS:
         QGuiApplication.clipboard().setText(text)   # outside Windows it stays on the clipboard
         return

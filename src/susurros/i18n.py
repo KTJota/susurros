@@ -29,6 +29,15 @@ ES: dict[str, str] = {
     "Option": "Opción", "Left Option": "Opción izquierda", "Right Option": "Opción derecha",
     "Command": "Comando", "Right Command": "Comando derecho",
     "Same as macOS": "El de macOS",
+    # Linux key names
+    "Super": "Súper", "Right Super": "Súper derecha",
+    "Same as the system": "El del sistema",
+    "A single key or a combination, such as Alt + 1 or Ctrl + Super. The key keeps doing its normal job too.":
+        "Una tecla o una combinación, como Alt + 1 o Ctrl + Súper. "
+        "La tecla sigue haciendo también su función normal.",
+    "A key is saved in your system's keyring.": "Hay una clave guardada en el llavero del sistema.",
+    "Susurros can't read the keyboard yet. Run its installer, then log out and back in.":
+        "Susurros aún no puede leer el teclado. Ejecuta su instalador, cierra la sesión y vuelve a entrar.",
     # option lists (config.py, sounds.py)
     "Bottom": "Abajo", "Top": "Arriba", "Left": "Izquierda", "Right": "Derecha",
     "Spanish": "Español", "English": "Inglés", "Detect automatically": "Detectar automáticamente",

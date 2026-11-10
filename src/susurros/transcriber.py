@@ -14,8 +14,11 @@ log = logging.getLogger("susurros.transcriber")
 
 
 def _add_cuda_dll_dirs() -> None:
-    """On Windows, cuBLAS and cuDNN come as pip packages; their DLLs must be put
-    on the search path before CTranslate2 loads them."""
+    """cuBLAS and cuDNN come as pip packages; their libraries must be made findable
+    before CTranslate2 loads them."""
+    if sys.platform.startswith("linux"):
+        _preload_linux_cuda()
+        return
     if sys.platform != "win32":
         return
     for module in ("nvidia.cublas", "nvidia.cudnn"):
@@ -30,6 +33,34 @@ def _add_cuda_dll_dirs() -> None:
             if bin_dir.is_dir():
                 os.add_dll_directory(str(bin_dir))
                 os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
+
+
+def _preload_linux_cuda() -> None:
+    """On Linux the optional pip packages with cuBLAS and cuDNN are not on the library path.
+    Loading them here first means CTranslate2 finds them already in the process."""
+    import ctypes
+    for module in ("nvidia.cublas", "nvidia.cudnn"):
+        try:
+            spec = importlib.util.find_spec(module)
+        except ModuleNotFoundError:
+            spec = None
+        if not spec or not spec.submodule_search_locations:
+            continue
+        for location in spec.submodule_search_locations:
+            for library in sorted((Path(location) / "lib").glob("lib*.so.*")):
+                try:
+                    ctypes.CDLL(str(library), mode=ctypes.RTLD_GLOBAL)
+                except OSError:
+                    log.info("Could not preload %s", library.name)
+
+
+def _warm_up(model) -> None:
+    """Two short passes. With the voice detector, so the first dictation does not pay for
+    loading it; and without it, because the detector discards this quiet noise before it
+    reaches the model, and only a real inference shows whether the GPU libraries load."""
+    warmup = (np.random.default_rng(0).standard_normal(16_000) * 0.01).astype(np.float32)
+    list(model.transcribe(warmup, language="es", beam_size=1, vad_filter=True)[0])
+    list(model.transcribe(warmup, language="es", beam_size=1, vad_filter=False)[0])
 
 
 class Transcript(NamedTuple):
@@ -50,17 +81,14 @@ class Transcriber:
         _add_cuda_dll_dirs()
         from faster_whisper import WhisperModel
 
-        warmup = (np.random.default_rng(0).standard_normal(16_000) * 0.01).astype(np.float32)
         try:
             model = WhisperModel(self.model_name, device="cuda", compute_type="float16")
-            # The CUDA DLLs are loaded at inference, not at construction: we force an inference
-            # (with VAD, so that the first dictation does not also pay for loading onnxruntime).
-            list(model.transcribe(warmup, language="es", beam_size=1, vad_filter=True)[0])
+            _warm_up(model)   # the CUDA libraries are loaded at inference, not at construction
             self.model, self.device = model, "cuda"
         except Exception as exc:
             log.warning("GPU not available (%s); using the CPU", exc)
             model = WhisperModel(self.model_name, device="cpu", compute_type="int8")
-            list(model.transcribe(warmup, language="es", beam_size=1, vad_filter=True)[0])
+            _warm_up(model)
             self.model, self.device = model, "cpu"
         log.info("Model %s loaded on %s", self.model_name, self.device)
         return self.device

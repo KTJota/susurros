@@ -1,7 +1,7 @@
 [project]
 name = "susurros"
-version = "0.2.0"
-description = "Local voice dictation for Windows and macOS: hold a key, speak, and the clean text appears wherever you are typing."
+version = "0.3.0"
+description = "Local voice dictation for Windows, macOS and Linux: hold a key, speak, and the clean text appears wherever you are typing."
 requires-python = ">=3.12,<3.13"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -20,6 +20,13 @@ dependencies = [
     "pyobjc-framework-ApplicationServices>=10; sys_platform == 'darwin'",
     "pyobjc-framework-AVFoundation>=10; sys_platform == 'darwin'",
     "mlx-whisper>=0.4.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+[project.optional-dependencies]
+# Linux with an NVIDIA card: the GPU libraries (the installer adds them when it finds the card).
+gpu = [
+    "nvidia-cublas-cu12; sys_platform == 'linux'",
+    "nvidia-cudnn-cu12>=9,<10; sys_platform == 'linux'",
 ]
 
 [project.gui-scripts]

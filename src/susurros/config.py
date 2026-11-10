@@ -43,6 +43,8 @@ if sys.platform == "darwin":
     # cannot be held or double-tapped. Right Command is free: on its own it does nothing.
     DEFAULTS.update(hotkey_vk="92", hotkey_name="Right Command")
     UI_LANGUAGES[0] = ("", "Same as macOS")
+elif sys.platform.startswith("linux"):
+    UI_LANGUAGES[0] = ("", "Same as the system")
 
 log = logging.getLogger("susurros")
 

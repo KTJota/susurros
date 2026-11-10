@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import queue
 import sys
 import threading
@@ -221,6 +222,9 @@ class Controller(QObject):
         if sys.platform == "darwin":
             from .mac.keys import mac_name   # the shared key names are the Windows ones
             translate = lambda name: tr(mac_name(name))   # noqa: E731
+        elif sys.platform.startswith("linux"):
+            from .linux.keys import linux_name
+            translate = lambda name: tr(linux_name(name))   # noqa: E731
         return combo_name(self._hotkey_keys(), translate, self.store.get("hotkey_name"))
 
     def _on_language_changed(self) -> None:
@@ -290,6 +294,9 @@ class Controller(QObject):
         elif self.hotkey.needs_permission == "accessibility":
             self.window.set_status(
                 tr("Allow Susurros in System Settings › Privacy & Security › Accessibility."), "error")
+        elif self.hotkey.needs_permission and sys.platform.startswith("linux"):
+            self.window.set_status(
+                tr("Susurros can't read the keyboard yet. Run its installer, then log out and back in."), "error")
         elif self.hotkey.needs_permission:
             self.window.set_status(
                 tr("Allow Susurros in System Settings › Privacy & Security › Input Monitoring."), "error")
@@ -569,6 +576,10 @@ def _mac_integration(app: QApplication, controller: Controller) -> None:
 
 def run(argv: list[str]) -> int:
     config.setup_logging()
+    if sys.platform.startswith("linux"):
+        # Through X11 (XWayland on a Wayland desktop): Wayland lets no window place itself or
+        # stay on top, which the floating indicator needs.
+        os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
     app = QApplication(argv)
     app.setApplicationName(config.APP_NAME)
     app.setQuitOnLastWindowClosed(False)
@@ -590,5 +601,8 @@ def run(argv: list[str]) -> int:
         lambda: (server.nextPendingConnection().close(), controller.window.bring_to_front()))
     if sys.platform == "darwin":
         _mac_integration(app, controller)
+    elif sys.platform.startswith("linux"):
+        from .linux import system
+        system.prepare_keyboard()   # ahead of the first dictation: the desktop takes a moment to accept it
     log.info("Susurros started")
     return app.exec()

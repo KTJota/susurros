@@ -16,7 +16,8 @@ from ..i18n import day_label, fmt_decimal, fmt_int, tr
 from . import theme
 
 IS_MAC = sys.platform == "darwin"
-CAN_CAPTURE = sys.platform in ("win32", "darwin")   # systems with a keyboard listener
+IS_LINUX = sys.platform.startswith("linux")
+CAN_CAPTURE = sys.platform in ("win32", "darwin") or IS_LINUX   # systems with a keyboard listener
 HISTORY_LIMIT = 100   # rows shown at once: beyond this, every refresh and theme change is noticeable
 
 
@@ -578,6 +579,8 @@ class MainWindow(QMainWindow):
         self._setting(card, tr("Dictation shortcut"),
                       tr("A single key or a combination, such as Option + 1 or Control + Command. "
                          "The key keeps doing its normal job too.") if IS_MAC else
+                      tr("A single key or a combination, such as Alt + 1 or Ctrl + Super. "
+                         "The key keeps doing its normal job too.") if IS_LINUX else
                       tr("A single key or a combination, such as Alt + 1 or Ctrl + Win. "
                          "The key keeps doing its normal job too."),
                       self._hotkey_button)
@@ -686,6 +689,8 @@ class MainWindow(QMainWindow):
             start.toggled.connect(autostart.set_enabled)
             if IS_MAC:
                 self._setting(card, tr("Open at login"), tr("Starts hidden in the menu bar."), start, last=True)
+            elif IS_LINUX:
+                self._setting(card, tr("Open at login"), tr("Starts hidden in the system tray."), start, last=True)
             else:
                 self._setting(card, tr("Open when Windows starts"), tr("Starts hidden in the system tray."),
                               start, last=True)
@@ -773,6 +778,7 @@ class MainWindow(QMainWindow):
         self._key_remove.setVisible(has_key)
         self._key_status.setText(
             (tr("A key is saved in the macOS Keychain.") if IS_MAC
+             else tr("A key is saved in your system's keyring.") if IS_LINUX
              else tr("A key is saved in Windows Credential Manager."))
             if has_key else
             tr("No key. Create one at console.anthropic.com and paste it here."))

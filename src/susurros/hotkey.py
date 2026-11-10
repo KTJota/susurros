@@ -385,8 +385,11 @@ class HotkeyListener(QObject):
 
 
 def create_listener(parent: QObject | None = None) -> HotkeyListener:
-    """The keyboard listener for this system: the Windows hook, or the macOS event tap."""
+    """The keyboard listener for this system: the Windows hook, the macOS event tap or the Linux reader."""
     if sys.platform == "darwin":
         from .mac.hotkey import MacHotkeyListener
         return MacHotkeyListener(parent)
+    if sys.platform.startswith("linux"):
+        from .linux.hotkey import LinuxHotkeyListener
+        return LinuxHotkeyListener(parent)
     return HotkeyListener(parent)

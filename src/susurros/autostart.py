@@ -1,4 +1,4 @@
-"""Start with the system: the user's Run key on Windows, a launch agent on macOS."""
+"""Start with the system: the user's Run key on Windows, a launch agent on macOS, a desktop entry on Linux."""
 from __future__ import annotations
 
 import contextlib
@@ -10,6 +10,8 @@ _NAME = "Susurros"
 
 
 def _command() -> str:
+    if getattr(sys, "frozen", False):   # installed from the setup program: the app's own executable
+        return f'"{sys.executable}" --hidden'
     # pythonw and not susurros.exe: Windows may block the unsigned launcher.
     pythonw = Path(sys.prefix) / "Scripts" / "pythonw.exe"
     return f'"{pythonw}" -m susurros --hidden'
@@ -18,6 +20,9 @@ def _command() -> str:
 def is_enabled() -> bool:
     if sys.platform == "darwin":
         from .mac import system
+        return system.autostart_enabled()
+    if sys.platform.startswith("linux"):
+        from .linux import system
         return system.autostart_enabled()
     if sys.platform != "win32":
         return False
@@ -36,6 +41,10 @@ def is_enabled() -> bool:
 def set_enabled(enabled: bool) -> None:
     if sys.platform == "darwin":
         from .mac import system
+        system.set_autostart(enabled)
+        return
+    if sys.platform.startswith("linux"):
+        from .linux import system
         system.set_autostart(enabled)
         return
     if sys.platform != "win32":

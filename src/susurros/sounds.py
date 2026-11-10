@@ -125,6 +125,13 @@ def play(event: str, sound_set: str = DEFAULT_SET) -> None:
         except Exception:
             log.warning("Could not play sound %s/%s", sound_set, event, exc_info=True)
         return
+    if sys.platform.startswith("linux"):
+        try:
+            from .linux import system
+            system.play_sound(str(_path(sound_set, event)))
+        except Exception:
+            log.warning("Could not play sound %s/%s", sound_set, event, exc_info=True)
+        return
     if sys.platform != "win32":
         return
     import winsound
