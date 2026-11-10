@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 
@@ -19,10 +20,15 @@ def controller(tmp_path, monkeypatch):
     monkeypatch.setenv("SUSURROS_DATA_DIR", str(tmp_path))
     seed = Store()
     seed.set("ui_language", "es")   # otherwise it would follow the language of the machine running the tests
+    seed.set("hotkey_keys", "20")   # Caps Lock on every system: the default differs on macOS
+    seed.set("hotkey_name", "Caps Lock")
     seed.close()
     monkeypatch.setattr(appmod.Worker, "start", lambda self: None)
     monkeypatch.setattr(appmod.Worker, "stop", lambda self: None)
     monkeypatch.setattr(appmod, "has_input", lambda: True)
+    if sys.platform == "darwin":   # no real keyboard listener: it would ask for a system permission
+        from susurros.mac.hotkey import MacHotkeyListener
+        monkeypatch.setattr(MacHotkeyListener, "start", lambda self: None)
     typed, pasted = [], []
     monkeypatch.setattr(appmod.injector, "type_text", typed.append)
     monkeypatch.setattr(appmod.injector, "paste", pasted.append)
