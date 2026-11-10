@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import math
+import sys
 import time
 
 from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, QSize, Qt, QTimer, Signal
@@ -34,6 +35,15 @@ _NO_FOCUS = (Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.Win
 _FILL = QColor(20, 19, 18, 242)
 
 
+def _show(widget: QWidget) -> None:
+    """Shows one of the indicator's windows. On macOS a plain tool window would vanish when
+    another app is active, which is exactly when the indicator is needed."""
+    widget.show()
+    if sys.platform == "darwin":
+        from ..mac import system
+        QTimer.singleShot(0, widget, lambda: system.float_window(widget))   # once the native window exists
+
+
 def is_vertical(position: str) -> bool:
     return position in ("left", "right")
 
@@ -56,13 +66,14 @@ class DropOverlay(QWidget):
         super().__init__(None, _NO_FOCUS | Qt.WindowTransparentForInput)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.active = "bottom"
         self._area = QRect()
 
     def open(self, screen) -> None:
         self.setGeometry(screen.geometry())
         self._area = screen.availableGeometry().translated(-screen.geometry().topLeft())
-        self.show()
+        _show(self)
 
     def slot_rect(self, position: str) -> QRectF:
         w, h = SIZE[0] + 20, SIZE[1] + 14
@@ -101,6 +112,7 @@ class Caption(QWidget):
         super().__init__(None, _NO_FOCUS | Qt.WindowTransparentForInput)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.text = ""
         self._font = QFont()
         self._font.setPixelSize(12)
@@ -117,7 +129,7 @@ class Caption(QWidget):
             "left": QPoint(pill.right() + gap, cy),
             "right": QPoint(pill.left() - gap - width, cy),
         }.get(position, QPoint(cx, pill.top() - gap - height)))
-        self.show()
+        _show(self)
         self.update()
 
     def paintEvent(self, _event) -> None:
@@ -142,6 +154,7 @@ class Controls(QWidget):
         super().__init__(None, _NO_FOCUS)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.setMouseTracking(True)
         self.setCursor(Qt.PointingHandCursor)
         self.position = "bottom"
@@ -157,7 +170,7 @@ class Controls(QWidget):
         else:                       # to its right
             self.setFixedSize(long, short)
             self.move(pill.right() + 7, pill.center().y() - short // 2)
-        self.show()
+        _show(self)
         self.update()
 
     def _button_at(self, pos) -> int:
@@ -219,6 +232,7 @@ class Pill(QWidget):
         super().__init__(None, _NO_FOCUS)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.state = "hidden"   # hidden | idle | recording | locked | processing
         self.position = "bottom"
         self.always = True
@@ -342,7 +356,7 @@ class Pill(QWidget):
             log.info("Indicator animation at %.0f Hz", rate)
         if not self._hover_timer.isActive():
             self._hover_timer.start()
-        self.show()
+        _show(self)
         self.update()
 
     def _current_screen(self):

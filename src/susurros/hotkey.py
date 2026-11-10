@@ -291,6 +291,8 @@ class HotkeyListener(QObject):
     keyUp = Signal(float)
     escapePressed = Signal()
     keysCaptured = Signal(object)   # list of (vk, scan code, extended key)
+    stateChanged = Signal()         # the listener got installed, or is waiting for a permission (macOS)
+    needs_permission = ""           # macOS only: the privacy permission still missing, if any
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -303,6 +305,10 @@ class HotkeyListener(QObject):
         self._thread_id = 0
         self.installed = False
         self.failed = False      # installing the hook was attempted and Windows refused it
+
+    def describe(self, keys: list[int], name: str) -> str:
+        """Display name to store for a shortcut just chosen. Windows already named it."""
+        return name
 
     def start(self) -> None:
         if sys.platform != "win32" or self._thread:
@@ -376,3 +382,11 @@ class HotkeyListener(QObject):
             pass
         user32.UnhookWindowsHookEx(hook)
         self.installed = False
+
+
+def create_listener(parent: QObject | None = None) -> HotkeyListener:
+    """The keyboard listener for this system: the Windows hook, or the macOS event tap."""
+    if sys.platform == "darwin":
+        from .mac.hotkey import MacHotkeyListener
+        return MacHotkeyListener(parent)
+    return HotkeyListener(parent)

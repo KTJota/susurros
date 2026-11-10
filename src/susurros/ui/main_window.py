@@ -15,6 +15,8 @@ from ..db import Store
 from ..i18n import day_label, fmt_decimal, fmt_int, tr
 from . import theme
 
+IS_MAC = sys.platform == "darwin"
+CAN_CAPTURE = sys.platform in ("win32", "darwin")   # systems with a keyboard listener
 HISTORY_LIMIT = 100   # rows shown at once: beyond this, every refresh and theme change is noticeable
 
 
@@ -162,6 +164,7 @@ class MainWindow(QMainWindow):
     hotkeyCaptureRequested = Signal()
     hotkeyCaptureAbandoned = Signal()   # the window was hidden or lost focus while waiting for the key
     languageChanged = Signal()          # the interface language setting has a new value
+    quitting = False                    # set when the whole app is closing: the window then lets itself be closed
 
     def __init__(self, store: Store, hotkey_name: str):
         """`hotkey_name` is the shortcut as shown to the user, already in the interface language."""
@@ -570,9 +573,11 @@ class MainWindow(QMainWindow):
         self._hotkey_button = QPushButton(self.hotkey_name)
         self._hotkey_button.setCursor(Qt.PointingHandCursor)
         self._hotkey_button.setMinimumWidth(150)
-        self._hotkey_button.setEnabled(sys.platform == "win32")
+        self._hotkey_button.setEnabled(CAN_CAPTURE)
         self._hotkey_button.clicked.connect(self._capture_hotkey)
         self._setting(card, tr("Dictation shortcut"),
+                      tr("A single key or a combination, such as Option + 1 or Control + Command. "
+                         "The key keeps doing its normal job too.") if IS_MAC else
                       tr("A single key or a combination, such as Alt + 1 or Ctrl + Win. "
                          "The key keeps doing its normal job too."),
                       self._hotkey_button)
@@ -675,12 +680,15 @@ class MainWindow(QMainWindow):
         self._setting(card, tr("Interface language"), "", ui_lang)
         self._toggle(card, "keep_raw", tr("Also keep the original transcription"),
                      tr("By default only the cleaned text is saved."),
-                     last=sys.platform != "win32")
-        if sys.platform == "win32":
+                     last=not CAN_CAPTURE)
+        if CAN_CAPTURE:
             start = Toggle(autostart.is_enabled())
             start.toggled.connect(autostart.set_enabled)
-            self._setting(card, tr("Open when Windows starts"), tr("Starts hidden in the system tray."),
-                          start, last=True)
+            if IS_MAC:
+                self._setting(card, tr("Open at login"), tr("Starts hidden in the menu bar."), start, last=True)
+            else:
+                self._setting(card, tr("Open when Windows starts"), tr("Starts hidden in the system tray."),
+                              start, last=True)
 
         inner.addSpacing(8)
         self._settings_hint = _label("", "hint", wrap=True)
@@ -753,7 +761,7 @@ class MainWindow(QMainWindow):
         """Updates every text that names the shortcut (also when the capture is cancelled)."""
         self.hotkey_name = name
         self._hotkey_button.setText(name)
-        self._hotkey_button.setEnabled(sys.platform == "win32")
+        self._hotkey_button.setEnabled(CAN_CAPTURE)
         self._history_subtitle.setText(
             tr("Hold {key} to dictate. Press it twice in a row to dictate hands-free.", key=name))
         self._settings_hint.setText(tr("Esc cancels a dictation in progress."))
@@ -764,7 +772,8 @@ class MainWindow(QMainWindow):
         has_key = bool(config.get_api_key())
         self._key_remove.setVisible(has_key)
         self._key_status.setText(
-            tr("A key is saved in Windows Credential Manager.")
+            (tr("A key is saved in the macOS Keychain.") if IS_MAC
+             else tr("A key is saved in Windows Credential Manager."))
             if has_key else
             tr("No key. Create one at console.anthropic.com and paste it here."))
 
@@ -803,6 +812,9 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         # Closing the window does not quit the app: it stays in the tray so dictation keeps working.
+        if self.quitting:   # the app itself is closing (Cmd+Q on macOS): do not stand in the way
+            event.accept()
+            return
         event.ignore()
         self.hide()
 

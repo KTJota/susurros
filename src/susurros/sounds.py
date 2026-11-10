@@ -1,4 +1,4 @@
-"""Audio cues when recording starts and stops (Windows only).
+"""Audio cues when recording starts and stops.
 
 There are several sound sets to choose from in Settings. All are almost pure, low sines
 with a rounded attack and low volume: no high harmonics, which is what makes a sound grate.
@@ -118,6 +118,13 @@ def _path(sound_set: str, event: str) -> Path:
 
 
 def play(event: str, sound_set: str = DEFAULT_SET) -> None:
+    if sys.platform == "darwin":
+        try:
+            from .mac import system
+            system.play_sound(str(_path(sound_set, event)))
+        except Exception:
+            log.warning("Could not play sound %s/%s", sound_set, event, exc_info=True)
+        return
     if sys.platform != "win32":
         return
     import winsound

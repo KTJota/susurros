@@ -8,8 +8,8 @@ import threading
 import time
 
 import numpy as np
-from PySide6.QtCore import QObject, QTimer, Signal
-from PySide6.QtGui import QAction
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QCursor
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
@@ -17,9 +17,9 @@ from . import cleaner, config, i18n, injector, sounds
 from .audio import SAMPLE_RATE, Recorder, has_input
 from .db import Store
 from .streaming import StreamState, Word
-from .hotkey import HOLD_MS, VK_ESCAPE, HotkeyListener, TapMachine, combo_name, normalize_combo, parse_keys
+from .hotkey import HOLD_MS, VK_ESCAPE, TapMachine, combo_name, create_listener, normalize_combo, parse_keys
 from .i18n import tr
-from .transcriber import Transcriber
+from .transcriber import create as create_transcriber
 from .ui import theme
 from .ui.main_window import MainWindow
 from .ui.pill import Pill
@@ -42,7 +42,7 @@ class Worker(QObject):
 
     def __init__(self, model_name: str):
         super().__init__()
-        self._transcriber = Transcriber(model_name)
+        self._transcriber = create_transcriber(model_name)
         self._live: tuple[int, StreamState] = (0, StreamState())
         self._jobs: queue.Queue[dict | None] = queue.Queue()
         self._thread = threading.Thread(target=self._run, name="transcriber", daemon=True)
@@ -142,6 +142,7 @@ class Controller(QObject):
         self.api_key = config.get_api_key()
         self.model_ready = False
         self.model_error = ""
+        self._quitting = False
         self.paused = False
         self._pending = 0
         self._mode = "hold"
@@ -173,7 +174,8 @@ class Controller(QObject):
         self._max_timer = QTimer(self, singleShot=True, interval=MAX_SECONDS * 1000,
                                  timeout=self.machine.force_stop)
 
-        self.hotkey = HotkeyListener(self)
+        self.hotkey = create_listener(self)
+        self.hotkey.stateChanged.connect(self._refresh_status)
         self.hotkey.filter.set_keys(parse_keys(self.store.get("hotkey_keys") or self.store.get("hotkey_vk")))
         self.hotkey.keyDown.connect(self.machine.down)
         self.hotkey.keyUp.connect(self.machine.up)
@@ -215,7 +217,11 @@ class Controller(QObject):
     def _hotkey_name(self) -> str:
         """The shortcut as shown to the user, in the current interface language. The stored name
         is only the fallback for keys that just the keyboard layout can name."""
-        return combo_name(self._hotkey_keys(), tr, self.store.get("hotkey_name"))
+        translate = tr
+        if sys.platform == "darwin":
+            from .mac.keys import mac_name   # the shared key names are the Windows ones
+            translate = lambda name: tr(mac_name(name))   # noqa: E731
+        return combo_name(self._hotkey_keys(), translate, self.store.get("hotkey_name"))
 
     def _on_language_changed(self) -> None:
         """Every label is created with the language active at that moment, so the main window
@@ -256,9 +262,10 @@ class Controller(QObject):
         self._menu = menu
         self._retranslate_tray()
         self.tray.setContextMenu(menu)
-        self.tray.activated.connect(
-            lambda reason: self.window.bring_to_front()
-            if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick) else None)
+        if sys.platform != "darwin":   # on macOS a click on the menu bar icon opens its menu
+            self.tray.activated.connect(
+                lambda reason: self.window.bring_to_front()
+                if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick) else None)
         self.tray.show()
 
     def _retranslate_tray(self) -> None:
@@ -280,10 +287,16 @@ class Controller(QObject):
             self.window.set_status(tr("Couldn't load the speech model: {error}", error=self.model_error), "error")
         elif not self.model_ready:
             self.window.set_status(tr("Loading the speech model…"), "busy")
+        elif self.hotkey.needs_permission == "accessibility":
+            self.window.set_status(
+                tr("Allow Susurros in System Settings › Privacy & Security › Accessibility."), "error")
+        elif self.hotkey.needs_permission:
+            self.window.set_status(
+                tr("Allow Susurros in System Settings › Privacy & Security › Input Monitoring."), "error")
         elif sys.platform == "win32" and self.hotkey.failed:
             self.window.set_status(tr("Couldn't capture the dictation key."), "error")
         else:
-            device = "GPU" if self._device == "cuda" else "CPU"
+            device = "GPU" if self._device in ("cuda", "mlx") else "CPU"
             self.window.set_status(tr("Ready to dictate · {device}", device=device), "ok")
 
     def _reload_key(self) -> None:
@@ -319,6 +332,7 @@ class Controller(QObject):
         """`captured`: the keys that were down together, as (vk, scan code, extended)."""
         self._capture_timer.stop()
         keys, name = normalize_combo(captured)
+        name = self.hotkey.describe(keys, name)
         if keys != [VK_ESCAPE]:  # Esc alone cancels the change and keeps the previous shortcut
             self.store.set("hotkey_keys", ",".join(str(k) for k in keys))
             self.store.set("hotkey_name", name)
@@ -507,6 +521,9 @@ class Controller(QObject):
             self._hide_pill_if_idle()
 
     def quit(self) -> None:
+        if self._quitting:
+            return
+        self._quitting = self.window.quitting = True
         self.machine.cancel()
         self.hotkey.stop()
         self.pill.always = False
@@ -516,6 +533,38 @@ class Controller(QObject):
         self.app.processEvents()  # and delivers its result, if there was one
         self.store.close()
         self.app.quit()
+
+
+class _QuitFilter(QObject):
+    """macOS asks the app to quit (Cmd+Q, the Dock menu, logging out) with an event of its own.
+    It is routed through `Controller.quit`, which stops the worker and closes the database."""
+
+    def __init__(self, app: QApplication, controller: Controller):
+        super().__init__(app)
+        self._app, self._controller = app, controller
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self._app and event.type() == QEvent.Quit and not self._controller._quitting:
+            self._controller.quit()
+            return True
+        return False
+
+
+def _mac_integration(app: QApplication, controller: Controller) -> None:
+    from .mac import system
+    system.request_microphone()
+    app.installEventFilter(_QuitFilter(app, controller))
+    started = time.monotonic()
+
+    def reopen(state) -> None:
+        """A click on the Dock icon activates the app: with its window closed, that opens it.
+        Not right after starting (it may have been started hidden at login), and not when the
+        activation comes from a click on the floating indicator."""
+        if (state == Qt.ApplicationState.ApplicationActive and not controller.window.isVisible()
+                and time.monotonic() - started > 3 and app.topLevelAt(QCursor.pos()) is None):
+            controller.window.bring_to_front()
+
+    app.applicationStateChanged.connect(reopen)
 
 
 def run(argv: list[str]) -> int:
@@ -539,5 +588,7 @@ def run(argv: list[str]) -> int:
     controller = Controller(app, start_hidden="--hidden" in argv)
     server.newConnection.connect(
         lambda: (server.nextPendingConnection().close(), controller.window.bring_to_front()))
+    if sys.platform == "darwin":
+        _mac_integration(app, controller)
     log.info("Susurros started")
     return app.exec()

@@ -1,4 +1,4 @@
-"""Writes the text into the focused application (clipboard + Ctrl+V)."""
+"""Writes the text into the focused application (clipboard + Ctrl+V; Cmd+V on macOS)."""
 from __future__ import annotations
 
 import logging
@@ -10,10 +10,14 @@ from PySide6.QtGui import QGuiApplication
 
 log = logging.getLogger("susurros.injector")
 IS_WINDOWS = sys.platform == "win32"
+IS_MAC = sys.platform == "darwin"
 
 
 def foreground_app() -> str:
     """Executable name of the active window, e.g. "Code" or "chrome"."""
+    if IS_MAC:
+        from .mac import system
+        return system.frontmost_app()
     if not IS_WINDOWS:
         return ""
     import ctypes
@@ -77,6 +81,10 @@ def _send_ctrl_v() -> None:
 def type_text(text: str) -> None:
     """Types `text` into the active window character by character, without using the clipboard.
     This is what on-the-fly dictation uses, since it writes many small pieces."""
+    if IS_MAC and text:
+        from .mac import injector as mac_injector
+        mac_injector.type_text(text)
+        return
     if not IS_WINDOWS or not text:
         return
     units = text.encode("utf-16-le")
@@ -110,7 +118,8 @@ class _Paster:
     """Pastes through the clipboard and leaves it as it was. Keeps a single copy of the original
     content even if several dictations arrive in a row, so as not to restore an earlier dictation."""
 
-    def __init__(self):
+    def __init__(self, send_paste=_send_ctrl_v):
+        self._send_paste = send_paste   # the paste shortcut of the system: Ctrl+V, or Cmd+V on macOS
         self._original: QMimeData | None = None
         self._ours = ""
         self._timer = QTimer(singleShot=True, interval=900, timeout=self._restore)
@@ -121,7 +130,7 @@ class _Paster:
             self._original = _clone(clipboard.mimeData())
         self._ours = text
         clipboard.setText(text)
-        QTimer.singleShot(60, _send_ctrl_v)
+        QTimer.singleShot(60, self._send_paste)
         self._timer.start()   # restarts the wait if a restore was pending
 
     def _restore(self) -> None:
@@ -138,6 +147,12 @@ _paster: _Paster | None = None
 def paste(text: str) -> None:
     """Pastes `text` into the active window and puts back what was on the clipboard."""
     global _paster
+    if IS_MAC:
+        if _paster is None:
+            from .mac import injector as mac_injector
+            _paster = _Paster(mac_injector.send_cmd_v)
+        _paster.paste(text)
+        return
     if not IS_WINDOWS:
         QGuiApplication.clipboard().setText(text)   # outside Windows it stays on the clipboard
         return

@@ -1,4 +1,4 @@
-"""Start with Windows through the user's Run key."""
+"""Start with the system: the user's Run key on Windows, a launch agent on macOS."""
 from __future__ import annotations
 
 import contextlib
@@ -16,6 +16,9 @@ def _command() -> str:
 
 
 def is_enabled() -> bool:
+    if sys.platform == "darwin":
+        from .mac import system
+        return system.autostart_enabled()
     if sys.platform != "win32":
         return False
     import winreg
@@ -31,6 +34,10 @@ def is_enabled() -> bool:
 
 
 def set_enabled(enabled: bool) -> None:
+    if sys.platform == "darwin":
+        from .mac import system
+        system.set_autostart(enabled)
+        return
     if sys.platform != "win32":
         return
     import winreg

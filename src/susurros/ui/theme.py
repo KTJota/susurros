@@ -30,8 +30,9 @@ ACCENT, ACCENT_HOVER, ACCENT_DIM, ON_ACCENT = (DARK["ACCENT"], DARK["ACCENT_HOVE
                                                DARK["ACCENT_DIM"], DARK["ON_ACCENT"])
 DANGER, OK = DARK["DANGER"], DARK["OK"]
 
-FONT = '"Segoe UI Variable Text", "Segoe UI", "Inter", sans-serif'
-FONT_DISPLAY = '"Segoe UI Variable Display", "Segoe UI", "Inter", sans-serif'
+FONT = '"Segoe UI Variable Text", "Segoe UI", ".AppleSystemUIFont", "Helvetica Neue", "Inter", sans-serif'
+FONT_DISPLAY = ('"Segoe UI Variable Display", "Segoe UI", ".AppleSystemUIFont", "Helvetica Neue", '
+                '"Inter", sans-serif')
 
 
 def apply(mode: str) -> str:

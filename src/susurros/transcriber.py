@@ -101,3 +101,11 @@ class Transcriber:
             initial_prompt=prompt or None, word_timestamps=True)
         words = [(w.start + offset, w.end + offset, w.word) for seg in segments for w in seg.words or []]
         return words, info.language
+
+
+def create(model_name: str = "large-v3-turbo"):
+    """The speech engine for this system: MLX first on macOS, faster-whisper everywhere else."""
+    if sys.platform == "darwin":
+        from .mac.transcriber import MacTranscriber
+        return MacTranscriber(model_name)
+    return Transcriber(model_name)

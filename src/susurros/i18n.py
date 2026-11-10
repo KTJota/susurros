@@ -24,6 +24,11 @@ ES: dict[str, str] = {
     "Left Ctrl": "Ctrl izquierdo", "Right Ctrl": "Ctrl derecho", "Left Alt": "Alt izquierdo",
     "Right Alt": "Alt derecho", "Left Shift": "Mayús izquierda", "Right Shift": "Mayús derecha",
     "Right Win": "Windows derecha",
+    # macOS key names
+    "Control": "Control", "Left Control": "Control izquierdo", "Right Control": "Control derecho",
+    "Option": "Opción", "Left Option": "Opción izquierda", "Right Option": "Opción derecha",
+    "Command": "Comando", "Right Command": "Comando derecho",
+    "Same as macOS": "El de macOS",
     # option lists (config.py, sounds.py)
     "Bottom": "Abajo", "Top": "Arriba", "Left": "Izquierda", "Right": "Derecha",
     "Spanish": "Español", "English": "Inglés", "Detect automatically": "Detectar automáticamente",
@@ -43,6 +48,16 @@ ES: dict[str, str] = {
     "Couldn't load the speech model: {error}": "No se pudo cargar el modelo de voz: {error}",
     "Loading the speech model…": "Cargando el modelo de voz…",
     "Couldn't capture the dictation key.": "No se ha podido capturar la tecla de dictado.",
+    "Allow Susurros in System Settings › Privacy & Security › Accessibility.":
+        "Permite Susurros en Ajustes del Sistema › Privacidad y seguridad › Accesibilidad.",
+    "Allow Susurros in System Settings › Privacy & Security › Input Monitoring.":
+        "Permite Susurros en Ajustes del Sistema › Privacidad y seguridad › Monitorización de entrada.",
+    "A single key or a combination, such as Option + 1 or Control + Command. The key keeps doing its normal job too.":
+        "Una tecla o una combinación, como Opción + 1 o Control + Comando. "
+        "La tecla sigue haciendo también su función normal.",
+    "A key is saved in the macOS Keychain.": "Hay una clave guardada en el Llavero de macOS.",
+    "Open at login": "Abrir al iniciar sesión",
+    "Starts hidden in the menu bar.": "Arranca oculto en la barra de menús.",
     "Ready to dictate · {device}": "Listo para dictar · {device}",
     "Microphone unavailable: {error}": "Micrófono no disponible: {error}",
     # indicator: caption and hover buttons (app.py, pill.py)

@@ -1,7 +1,7 @@
 [project]
 name = "susurros"
-version = "0.1.0"
-description = "Local voice dictation: hold Caps Lock, speak, and the clean text appears wherever you are typing."
+version = "0.2.0"
+description = "Local voice dictation for Windows and macOS: hold a key, speak, and the clean text appears wherever you are typing."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "PySide6-Essentials>=6.7",
@@ -12,6 +12,12 @@ dependencies = [
     "keyring>=25",
     "nvidia-cublas-cu12<=12.9.2.10; sys_platform == 'win32'",
     "nvidia-cudnn-cu12>=9,<=9.28.1.4; sys_platform == 'win32'",
+    # macOS: the system frameworks (keyboard, permissions, sounds) and the Apple Silicon speech engine
+    "pyobjc-framework-Cocoa>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-ApplicationServices>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-AVFoundation>=10; sys_platform == 'darwin'",
+    "mlx-whisper>=0.4.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
 ]
 
 [project.gui-scripts]
@@ -22,6 +28,11 @@ susurros-cli = "susurros.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
+package = ["pyinstaller>=6.11"]   # builds the macOS app (see packaging/macos)
+
+[tool.uv]
+# mlx-whisper lists torch, but only its model conversion script uses it: a large download for nothing.
+override-dependencies = ["torch; sys_platform == 'never'"]
 
 [build-system]
 requires = ["hatchling"]

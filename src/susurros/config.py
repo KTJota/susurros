@@ -38,6 +38,12 @@ HUD_POSITIONS = [("bottom", "Bottom"), ("top", "Top"), ("left", "Left"), ("right
 LANGUAGES = [("es", "Spanish"), ("en", "English"), ("", "Detect automatically")]
 UI_LANGUAGES = [("", "Same as Windows"), ("es", "Español"), ("en", "English")]
 
+if sys.platform == "darwin":
+    # macOS reports Caps Lock when its light changes, not when the key goes down and up, so it
+    # cannot be held or double-tapped. Right Command is free: on its own it does nothing.
+    DEFAULTS.update(hotkey_vk="92", hotkey_name="Right Command")
+    UI_LANGUAGES[0] = ("", "Same as macOS")
+
 log = logging.getLogger("susurros")
 
 
@@ -47,6 +53,8 @@ def data_dir() -> Path:
         base = Path(override)
     elif sys.platform == "win32":
         base = Path(os.environ.get("APPDATA", Path.home())) / APP_NAME
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support" / APP_NAME
     else:
         base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "susurros"
     base.mkdir(parents=True, exist_ok=True)
